@@ -10,7 +10,7 @@ class MyAwesomeExtension extends Autodesk.Viewing.Extension {
     }
 
     load() {
-        console.log(this._symb_name,' has been loaded');
+        console.log(this._symb_name, ' has been loaded');
         return true;
     }
 
@@ -63,7 +63,6 @@ Autodesk.Viewing.theExtensionManager.registerExtension('MyAwesomeExtension', MyA
 // ---------------------------- create panel -----------------------------------------
 class CustomPropertyPanel extends Autodesk.Viewing.Extensions.ViewerPropertyPanel {
 
-
     constructor(viewer, options) {
         super(viewer, options);
         this.viewer = viewer;
@@ -73,17 +72,19 @@ class CustomPropertyPanel extends Autodesk.Viewing.Extensions.ViewerPropertyPane
     }
 
     setProperties(properties, options) {
-        Autodesk.Viewing.Extensions.ViewerPropertyPanel.prototype.setProperties.call(this, properties, options);
-
+        super.setProperties(properties, options);
         // add your custom properties here
         // for example, let's show the dbId and externalId
         var _this = this;
         // dbId is right here as nodeId
         this.addProperty('dbId', this.propertyNodeId, 'Custom Properties');
         // externalId is under all properties, let's get it!
-        this.viewer.getProperties(this.propertyNodeId, function (props) {
-            _this.addProperty('externalId', props.externalId, 'Custom Properties');
-        })
+        this.viewer.getProperties(
+            this.propertyNodeId,
+            function (node_props) {
+                _this.addProperty('externalId', node_props.externalId, 'Custom Properties');
+            }
+        )
     }
 
     setNodeProperties(nodeId) {
@@ -91,7 +92,6 @@ class CustomPropertyPanel extends Autodesk.Viewing.Extensions.ViewerPropertyPane
         this.nodeId = nodeId; // store the dbId for later use
     };
 }
-
 
 
 // ----------------------------create extension -------------------------------------------
