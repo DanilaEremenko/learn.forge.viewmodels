@@ -36,10 +36,39 @@ function launchViewer(urn) {
 }
 
 function onDocumentLoadSuccess(doc) {
-  var viewables = doc.getRoot().getDefaultGeometry();
-  viewer.loadDocumentNode(doc, viewables).then(i => {
-    // documented loaded, any action?
-  });
+    var viewables = doc.getRoot().getDefaultGeometry();
+    viewer.loadDocumentNode(doc, viewables).then(i => {
+        // documented loaded, any action?
+
+        // ---------------------------------------------------------------------------------------------------
+        // ----------------------------- receive all tree elements info --------------------------------------
+        // ---------------------------------------------------------------------------------------------------
+        viewer.addEventListener(Autodesk.Viewing.OBJECT_TREE_CREATED_EVENT, function (event) {
+            const instanceTree = viewer.model.getInstanceTree();
+            const rootNodeId = instanceTree.getRootId();
+            const traverseRecursively = true;
+            let categ_set = new Set();
+
+            function callback(dbid) {
+                dbid_properties = viewer.model.getProperties(
+                    dbid,
+                    function (data) {
+                        console.log(data)
+                        data.properties.forEach(function (curr_prop) {
+                                categ_set.add(curr_prop.displayCategory);
+                            }
+                        )
+                    }
+                )
+            }
+
+            instanceTree.enumNodeChildren(rootNodeId, callback, traverseRecursively);
+            console.log(categ_set);
+
+        });
+
+    });
+
 }
 
 function onDocumentLoadFailure(viewerErrorCode) {
