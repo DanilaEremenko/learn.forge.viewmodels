@@ -67,6 +67,16 @@ function onDocumentLoadSuccess(doc) {
 
         });
 
+        // ---------------------------------------------------------------------------------------------------
+        // ----------------------------- receive current selected element info -------------------------------
+        // ---------------------------------------------------------------------------------------------------
+        viewer.addEventListener(Autodesk.Viewing.AGGREGATE_SELECTION_CHANGED_EVENT, function (curr_object) {
+            curr_dbid = curr_object.selections[0].dbIdArray[0];//TODO could be selection.length > 1?
+            viewer.model.getProperties(curr_dbid, function (curr_prop) {
+                console.log(curr_prop);
+            });
+        });
+
     });
 
 }
