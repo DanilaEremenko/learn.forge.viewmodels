@@ -66,6 +66,42 @@ function onDocumentLoadSuccess(doc) {
             console.log('Категории:')
             console.log(categ_set);
 
+            // ---------------------------------------------------------------------------------------------------
+            // ----------------------------- receive leaf and view nodes -----------------------------------------
+            // ---------------------------------------------------------------------------------------------------
+            let view3d_node = undefined
+            let leaf_node = undefined
+
+            function recurs_node_finding(curr_bubble_node) {
+                if (curr_bubble_node !== undefined) {
+                    if (curr_bubble_node.data.children !== undefined && curr_bubble_node.data.name !== undefined
+                        && view3d_node === undefined && leaf_node === undefined//TODO nice bone
+                    ) {
+                        if (curr_bubble_node.data.name === 'Simple2.rvt')//TODO replace with project name
+                            curr_bubble_node.data.children.forEach(function (child_node) {
+                                if (child_node.name === 'Виды') {
+                                    view3d_node = child_node
+                                } else if (child_node.name === 'Листы') {
+                                    leaf_node = child_node
+                                }
+                            })
+                        recurs_node_finding(curr_bubble_node.parent)
+
+                    } else {
+                        recurs_node_finding(curr_bubble_node.parent)
+                    }
+                }
+            }
+
+            viewer.model.getDocumentNode().traverse(recurs_node_finding)
+
+            console.log('Виды:')
+            console.log(view3d_node)
+
+            console.log('Листы:')
+            console.log(leaf_node)
+
+
         });
 
         // ---------------------------------------------------------------------------------------------------
