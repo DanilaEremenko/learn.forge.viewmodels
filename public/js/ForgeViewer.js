@@ -41,28 +41,29 @@ function onDocumentLoadSuccess(doc) {
         // documented loaded, any action?
 
         // ---------------------------------------------------------------------------------------------------
-        // ----------------------------- receive all tree elements info --------------------------------------
+        // ----------------------------- receive all tree elements and categories info -----------------------
         // ---------------------------------------------------------------------------------------------------
-        viewer.addEventListener(Autodesk.Viewing.OBJECT_TREE_CREATED_EVENT, function (event) {
+        let categ_set = new Set();
+        console.log('getting category set')
+        viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, function (event) {
             const instanceTree = viewer.model.getInstanceTree();
             const rootNodeId = instanceTree.getRootId();
             const traverseRecursively = true;
-            let categ_set = new Set();
 
             function callback(dbid) {
                 dbid_properties = viewer.model.getProperties(
                     dbid,
                     function (data) {
-                        console.log(data)
-                        data.properties.forEach(function (curr_prop) {
-                                categ_set.add(curr_prop.displayCategory);
-                            }
-                        )
+                        // console.log(data)
+                        category = data.properties[0]['displayValue']
+                        categ_set.add(category);
+
                     }
                 )
             }
 
             instanceTree.enumNodeChildren(rootNodeId, callback, traverseRecursively);
+            console.log('Категории:')
             console.log(categ_set);
 
         });
