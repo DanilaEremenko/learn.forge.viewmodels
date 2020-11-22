@@ -35,36 +35,134 @@ function launchViewer(urn) {
   });
 }
 
+function parse_json(json_path) {
+    return {
+        "Вертикальные элементы": {
+            "Фундаменты": [
+                "Revit фундамент несужей конструкции"
+            ],
+            "Стены": [
+                "Revit стены"
+            ],
+            "Перекрытия": [
+                "Revit Перекрытия",
+                "Revit ребра плит"
+            ],
+            "Колонны": [
+                "Revit Несущие колонны"
+            ],
+            "Крыши": [
+                "Revit Крыши"
+            ],
+            "Лестницы": [
+                "Revit лестницы",
+                "Revit марши",
+                "Revit Площадки"
+            ],
+            "Окна": [
+                "Revit Окна"
+            ],
+            "Витражи": [
+                "Revit панели витража",
+                "Revit импосты витража"
+            ],
+            "Двери": [
+                "Revit двери"
+            ],
+            "Инженерные сети": [
+                "Revit Осветительные приборы",
+                "Revit Кабельные лотки",
+                "Revit соединительные детали кабельных лотков",
+                "Revit Выключатели",
+                "Revit Электрические приборы",
+                "Revit короба",
+                "Revit Сантехнические приборы",
+                "Revit воздухораспределители"
+            ],
+            "Монтируемое оборудование": [
+                "Revit ограждение",
+                "Revit пандус"
+            ],
+            "Немонтируемое оборудование": [],
+            "Декоративные детали": [
+                "Revit обобщенные модели"
+            ]
+        },
+        "Горизонтальные элементы": {
+            "ЭОМ": [
+                "Revit Осветительные приборы",
+                "Revit Кабельные лотки",
+                "Revit соединительные детали кабельных лотков",
+                "Revit Выключатели",
+                "Revit Электрические приборы"
+            ],
+            "ОВ": [
+                "Revit короба",
+                "Revit воздухораспределители"
+            ],
+            "ВК": [
+                "Revit Сантехнические приборы"
+            ],
+            "Отделка": [
+                "Revit Потолки"
+            ]
+        }
+    }
+
+
+}
+
+
 function onDocumentLoadSuccess(doc) {
     var viewables = doc.getRoot().getDefaultGeometry();
     viewer.loadDocumentNode(doc, viewables).then(i => {
         // documented loaded, any action?
-
         // ---------------------------------------------------------------------------------------------------
         // ----------------------------- receive all tree elements and categories info -----------------------
         // ---------------------------------------------------------------------------------------------------
         let categ_set = new Set();
+        const filter_dict = parse_json('../filters.json')
+        let res_filter_dict = {};
+        for (const key_panel of Object.keys(filter_dict)) {
+            res_filter_dict[key_panel] = {}
+            for (const key_button of Object.keys(filter_dict[key_panel])) {
+                res_filter_dict[key_panel][key_button] = []
+            }
+        }
         console.log('getting category set')
         viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, function (event) {
             const instanceTree = viewer.model.getInstanceTree();
             const rootNodeId = instanceTree.getRootId();
             const traverseRecursively = true;
 
-            function callback(dbid) {
+            function all_elements_cb(dbid) {
                 dbid_properties = viewer.model.getProperties(
                     dbid,
-                    function (data) {
+                    function (curr_element) {
                         // console.log(data)
-                        category = data.properties[0]['displayValue']
-                        categ_set.add(category);
+
+                        const curr_category = curr_element.properties[0]['displayValue']
+                        for (const key_panel of Object.keys(filter_dict)) {
+                            for (const key_button of Object.keys(filter_dict[key_panel])) {
+                                if (filter_dict[key_panel][key_button].includes(curr_category)) {
+                                    res_filter_dict[key_panel][key_button].push(dbid);
+                                }
+
+                            }
+                        }
+                        categ_set.add(curr_category);
 
                     }
                 )
             }
 
-            instanceTree.enumNodeChildren(rootNodeId, callback, traverseRecursively);
+            instanceTree.enumNodeChildren(rootNodeId, all_elements_cb, traverseRecursively);
             console.log('Категории:')
             console.log(categ_set);
+
+            console.log('Мапа с отфильтрованными id:')
+            console.log(res_filter_dict);
+
 
             // ---------------------------------------------------------------------------------------------------
             // ----------------------------- receive leaf and view nodes -----------------------------------------
