@@ -112,6 +112,18 @@ function parse_json(json_path) {
 
 }
 
+function get_ids_and_categories(dbId, model) {
+    if (!dbId) return Promise.resolve(null);
+    return new Promise(resolve => {
+        model.getProperties(dbId, x => {
+            var obj = {
+                id: dbId,
+                category: x.properties[0]['displayValue']
+            };
+            resolve(obj);
+        });
+    });
+}
 
 function onDocumentLoadSuccess(doc) {
     var viewables = doc.getRoot().getDefaultGeometry();
@@ -120,49 +132,61 @@ function onDocumentLoadSuccess(doc) {
         // ---------------------------------------------------------------------------------------------------
         // ----------------------------- receive all tree elements and categories info -----------------------
         // ---------------------------------------------------------------------------------------------------
-        let categ_set = new Set();
-        const filter_dict = parse_json('../filters.json')
-        let res_filter_dict = {};
-        for (const key_panel of Object.keys(filter_dict)) {
-            res_filter_dict[key_panel] = {}
-            for (const key_button of Object.keys(filter_dict[key_panel])) {
-                res_filter_dict[key_panel][key_button] = []
-            }
-        }
-        console.log('getting category set')
+
+
         viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, function (event) {
             const instanceTree = viewer.model.getInstanceTree();
-            const rootNodeId = instanceTree.getRootId();
-            const traverseRecursively = true;
 
-            function all_elements_cb(dbid) {
-                dbid_properties = viewer.model.getProperties(
-                    dbid,
-                    function (curr_element) {
-                        // console.log(data)
+            Promise.all(
+                Object.keys(instanceTree.nodeAccess.dbIdToIndex).map(dbId => get_ids_and_categories(dbId = dbId - 0, viewer.model))
+            ).then(function (result_list) {
+                let categ_set = new Set();
+                const filter_dict = parse_json('../filters.json')
+                let res_filter_dict = {};
+                let added_el = 0
 
-                        const curr_category = curr_element.properties[0]['displayValue']
+                let all_el = 0
+                for (const key_panel of Object.keys(filter_dict)) {
+                    res_filter_dict[key_panel] = {}
+                    for (const key_button of Object.keys(filter_dict[key_panel])) {
+                        res_filter_dict[key_panel][key_button] = []
+                        //TODO map function in js???
+                        for (let j = 0; j < filter_dict[key_panel][key_button].length; j++) {
+                            filter_dict[key_panel][key_button][j] = filter_dict[key_panel][key_button][j].toLowerCase()
+                        }
+                    }
+                }
+
+                for (const curr_element of result_list) {
+                    if (curr_element !== null) {
+                        // console.log(curr_element)
+                        all_el += 1
+                        const curr_category = curr_element['category']
                         for (const key_panel of Object.keys(filter_dict)) {
                             for (const key_button of Object.keys(filter_dict[key_panel])) {
-                                if (filter_dict[key_panel][key_button].includes(curr_category)) {
-                                    res_filter_dict[key_panel][key_button].push(dbid);
+                                if (filter_dict[key_panel][key_button].includes(curr_category.toLowerCase())) {
+                                    res_filter_dict[key_panel][key_button].push(curr_element['id']);
+                                    added_el += 1
                                 }
-
                             }
                         }
                         categ_set.add(curr_category);
-
                     }
-                )
-            }
+                }
 
-            instanceTree.enumNodeChildren(rootNodeId, all_elements_cb, traverseRecursively);
-            console.log('Категории:')
-            console.log(categ_set);
+                console.log("all_el = ", all_el,)
+                console.log("added_el = ", added_el)
 
-            console.log('Мапа с отфильтрованными id:')
-            console.log(res_filter_dict);
+                console.log('Категории:');
+                console.log(categ_set);
 
+                console.log('Мапа с отфильтрованными id:');
+                console.log(res_filter_dict);
+
+            }).catch(function (error) {
+                console.log(error.message);
+                console.log(error.stack);
+            });
 
             // ---------------------------------------------------------------------------------------------------
             // ----------------------------- receive leaf and view nodes -----------------------------------------
@@ -208,7 +232,7 @@ function onDocumentLoadSuccess(doc) {
         viewer.addEventListener(Autodesk.Viewing.AGGREGATE_SELECTION_CHANGED_EVENT, function (curr_object) {
             curr_dbid = curr_object.selections[0].dbIdArray[0];//TODO could be selection.length > 1?
             viewer.model.getProperties(curr_dbid, function (curr_prop) {
-                console.log(curr_prop);
+                console.log(curr_prop.dbId, curr_prop.properties[0]['displayValue']);
             });
         });
 
